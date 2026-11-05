@@ -1,0 +1,117 @@
+:root {
+    --bg: #0f1419;
+    --karte: #1a212b;
+    --rand: #2a3441;
+    --text: #e6edf3;
+    --gedimmt: #8b98a8;
+    --gruen: #2ecc71;
+    --rot: #ff5c5c;
+    --akzent: #4c9aff;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+}
+
+.kopf {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: var(--karte);
+    border-bottom: 1px solid var(--rand);
+}
+
+.kopf h1 { margin: 0; font-size: 1.4rem; }
+.spieler { color: var(--gedimmt); }
+
+main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+}
+
+.karten {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.karte, .box {
+    background: var(--karte);
+    border: 1px solid var(--rand);
+    border-radius: 12px;
+}
+
+.karte { padding: 16px; display: flex; flex-direction: column; }
+.karte .label { color: var(--gedimmt); font-size: .85rem; }
+.karte .wert { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+
+.box { padding: 20px; margin-bottom: 20px; }
+.box h2 { margin: 0 0 14px; font-size: 1.1rem; }
+
+.plus { color: var(--gruen); }
+.minus { color: var(--rot); }
+
+.meldung {
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    border: 1px solid;
+}
+.meldung.ok { background: rgba(46, 204, 113, .12); border-color: var(--gruen); }
+.meldung.fehler { background: rgba(255, 92, 92, .12); border-color: var(--rot); }
+
+.handel { display: flex; flex-wrap: wrap; gap: 10px; }
+
+input {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--rand);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 1rem;
+}
+input:focus { outline: 2px solid var(--akzent); border-color: transparent; }
+#symbol { flex: 2 1 180px; text-transform: uppercase; }
+#anzahl { flex: 1 1 90px; }
+
+button {
+    border: 0;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: filter .15s;
+}
+button:hover { filter: brightness(1.15); }
+.kaufen { background: #1e9e55; }
+.verkaufen { background: #d64545; }
+
+.vorschau { min-height: 1.4em; margin: 12px 0 0; color: var(--gedimmt); }
+.fehler-text { color: var(--rot); }
+
+.tabelle-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--rand); white-space: nowrap; }
+th { color: var(--gedimmt); font-size: .8rem; font-weight: 600; text-transform: uppercase; }
+tfoot td { font-weight: 700; border-bottom: 0; }
+.zahl { text-align: right; }
+
+.symbol-link { color: var(--akzent); text-decoration: none; }
+.symbol-link:hover { text-decoration: underline; }
+
+.badge { padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; }
+.badge.kauf { background: rgba(46, 204, 113, .18); color: var(--gruen); }
+.badge.verkauf { background: rgba(255, 92, 92, .18); color: var(--rot); }
+
+.leer { color: var(--gedimmt); margin: 0; }

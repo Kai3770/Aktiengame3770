@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Börsenspiel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<header class="kopf">
+    <h1>📈 Börsenspiel</h1>
+    <span class="spieler">👤 {{ spieler.name }}</span>
+</header>
+
+<main>
+
+    {% with meldungen = get_flashed_messages(with_categories=true) %}
+        {% for kategorie, text in meldungen %}
+            <div class="meldung {{ kategorie }}">{{ text }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <section class="karten">
+        <div class="karte">
+            <span class="label">Guthaben</span>
+            <span class="wert">{{ spieler.guthaben | eur }} €</span>
+        </div>
+        <div class="karte">
+            <span class="label">Depotwert</span>
+            <span class="wert">{{ depot_wert | eur }} €</span>
+        </div>
+        <div class="karte">
+            <span class="label">Gesamtvermögen</span>
+            <span class="wert">{{ gesamt | eur }} €</span>
+        </div>
+        <div class="karte">
+            <span class="label">Bilanz seit Start</span>
+            <span class="wert {{ 'plus' if bilanz >= 0 else 'minus' }}">
+                {{ '+' if bilanz >= 0 }}{{ bilanz | eur }} €
+            </span>
+        </div>
+    </section>
+
+    <section class="box">
+        <h2>Handeln</h2>
+        <form method="POST" class="handel">
+            <input type="text" name="symbol" id="symbol" placeholder="Symbol, z. B. AAPL"
+                   autocomplete="off" required>
+            <input type="number" name="anzahl" id="anzahl" min="1" value="1" required>
+            <button type="submit" name="buy" class="kaufen">Kaufen</button>
+            <button type="submit" name="sell" class="verkaufen">Verkaufen</button>
+        </form>
+        <p id="vorschau" class="vorschau"></p>
+    </section>
+
+    <section class="box">
+        <h2>Dein Depot</h2>
+        {% if depot %}
+        <div class="tabelle-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th class="zahl">Stück</th>
+                    <th class="zahl">Kaufkurs</th>
+                    <th class="zahl">Aktuell</th>
+                    <th class="zahl">Wert</th>
+                    <th class="zahl">Gewinn / Verlust</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in depot %}
+                <tr>
+                    <td><a href="#" class="symbol-link" data-symbol="{{ p.symbol }}"><strong>{{ p.symbol }}</strong></a></td>
+                    <td class="zahl">{{ p.anzahl }}</td>
+                    <td class="zahl">{{ p.kaufkurs | eur }} €</td>
+                    <td class="zahl">{{ p.kurs | eur }} €</td>
+                    <td class="zahl">{{ p.wert | eur }} €</td>
+                    <td class="zahl {{ 'plus' if p.gewinn is not none and p.gewinn >= 0 else 'minus' }}">
+                        {% if p.gewinn is none %}–{% else %}
+                            {{ '+' if p.gewinn >= 0 }}{{ p.gewinn | eur }} €
+                            ({{ '+' if p.prozent >= 0 }}{{ p.prozent | eur }} %)
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4">Summe</td>
+                    <td class="zahl">{{ depot_wert | eur }} €</td>
+                    <td class="zahl {{ 'plus' if depot_gewinn >= 0 else 'minus' }}">
+                        {{ '+' if depot_gewinn >= 0 }}{{ depot_gewinn | eur }} €
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+        </div>
+        {% else %}
+            <p class="leer">Dein Depot ist noch leer. Kauf deine erste Aktie!</p>
+        {% endif %}
+    </section>
+
+    <section class="box">
+        <h2>Letzte Transaktionen</h2>
+        {% if transaktionen %}
+        <div class="tabelle-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Zeit</th>
+                    <th>Aktion</th>
+                    <th>Symbol</th>
+                    <th class="zahl">Stück</th>
+                    <th class="zahl">Preis</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in transaktionen %}
+                <tr>
+                    <td>{{ t.zeitpunkt.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td><span class="badge {{ t.aktion | lower }}">{{ t.aktion }}</span></td>
+                    <td>{{ t.symbol }}</td>
+                    <td class="zahl">{{ t.anzahl }}</td>
+                    <td class="zahl">{{ t.preis | eur }} €</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+            <p class="leer">Noch keine Transaktionen.</p>
+        {% endif %}
+    </section>
+
+</main>
+
+<script>
+    const symbolFeld = document.getElementById("symbol");
+    const anzahlFeld = document.getElementById("anzahl");
+    const vorschau = document.getElementById("vorschau");
+    let timer = null;
+
+    function aktualisiereVorschau() {
+        const symbol = symbolFeld.value.trim().toUpperCase();
+        const anzahl = parseInt(anzahlFeld.value, 10) || 0;
+
+        if (!symbol) {
+            vorschau.textContent = "";
+            return;
+        }
+
+        fetch("/api/kurs/" + encodeURIComponent(symbol))
+            .then(r => r.ok ? r.json() : Promise.reject())
+            .then(d => {
+                const summe = d.kurs * anzahl;
+                const fmt = n => n.toLocaleString("de-DE", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                vorschau.className = "vorschau";
+                vorschau.textContent =
+                    d.symbol + ": " + fmt(d.kurs) + " €" +
+                    (anzahl > 0 ? "  →  " + anzahl + " Stück = " + fmt(summe) + " €" : "");
+            })
+            .catch(() => {
+                vorschau.className = "vorschau fehler-text";
+                vorschau.textContent = "Kein Kurs für „" + symbol + "“ gefunden.";
+            });
+    }
+
+    function verzoegert() {
+        clearTimeout(timer);
+        timer = setTimeout(aktualisiereVorschau, 400);
+    }
+
+    symbolFeld.addEventListener("input", verzoegert);
+    anzahlFeld.addEventListener("input", verzoegert);
+
+    // Klick auf ein Symbol im Depot füllt das Formular vor
+    document.querySelectorAll(".symbol-link").forEach(a => {
+        a.addEventListener("click", e => {
+            e.preventDefault();
+            symbolFeld.value = a.dataset.symbol;
+            aktualisiereVorschau();
+            anzahlFeld.focus();
+            window.scrollTo({top: 0, behavior: "smooth"});
+        });
+    });
+</script>
+
+</body>
+</html>
